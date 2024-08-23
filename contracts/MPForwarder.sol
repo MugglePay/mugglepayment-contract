@@ -13,6 +13,7 @@ contract MPForwarder {
   event ERC20Flushed(address indexed token, address indexed to, uint256 amount);
 
   constructor(address _destination) {
+    require(_destination != address(0), "Invalid destination address");
     destination = _destination;
   }
 
@@ -25,7 +26,6 @@ contract MPForwarder {
   }
 
   function flushETH() external {
-    require(destination != address(0), "Destination address not set");
     uint256 balance = address(this).balance;
     require(balance > 0, "No ETH to flush");
     (bool success, ) = destination.call{ value: balance }("");
@@ -34,7 +34,6 @@ contract MPForwarder {
   }
 
   function flushERC20(address tokenContractAddress) external {
-    require(destination != address(0), "Destination address not set");
     require(tokenContractAddress != address(0), "Invalid token address");
     IERC20 tokenContract = IERC20(tokenContractAddress);
     uint256 forwarderBalance = tokenContract.balanceOf(address(this));
