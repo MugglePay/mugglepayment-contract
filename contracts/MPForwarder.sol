@@ -16,12 +16,6 @@ contract MPForwarder {
     destination = _destination;
   }
 
-  function init(address _destination) public {
-    require(destination == address(0), "Destination already set");
-    require(_destination != address(0), "Invalid destination address");
-    destination = _destination;
-  }
-
   receive() external payable {
     // Accept ETH deposits
   }
