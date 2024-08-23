@@ -69,5 +69,5 @@ Or specify a custom network in the `hardhat.config.ts` file.
 
 ### Mainnet deployed contract
 
-- Arbitrum: `0x56Cef7882d6187120F0A70de3Bda6ab9949a035e`
+- Arbitrum: `0x59e56bB2aB29C40B340AfbE7f8D8061FE09a5841`
 - BSC: `0x4fA49144bb120f5665Bc5210C28013bf3421c04D`
