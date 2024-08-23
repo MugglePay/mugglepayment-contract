@@ -15,11 +15,27 @@ describe("MPForwarder", function () {
 
   async function deployNoDestinationMPForwarderFixture() {
     const [owner] = await hre.ethers.getSigners();
+    const destination = hre.ethers.ZeroAddress;
 
     const MPForwarder = await hre.ethers.getContractFactory("MPForwarder");
-    const mpForwarder = await MPForwarder.deploy(hre.ethers.ZeroAddress);
+    const mpForwarder = await MPForwarder.deploy(destination);
 
-    return { mpForwarder, owner };
+    return { mpForwarder, destination, owner };
+  }
+
+  async function deployRevertingDestinationForwarderFixture() {
+    const [owner] = await hre.ethers.getSigners();
+
+    const DestinationMock = await hre.ethers.getContractFactory(
+      "DestinationMock"
+    );
+    const destinationMock = await DestinationMock.deploy();
+    const destinationMockAddress = await destinationMock.getAddress();
+
+    const MPForwarder = await hre.ethers.getContractFactory("MPForwarder");
+    const mpForwarder = await MPForwarder.deploy(destinationMockAddress);
+
+    return { mpForwarder, destination: destinationMockAddress, owner };
   }
 
   describe("deploy", function () {
@@ -30,37 +46,9 @@ describe("MPForwarder", function () {
 
       expect(await mpForwarder.destination()).to.equal(destination);
     });
-  });
-
-  describe("init", function () {
-    it("should set the right destination", async function () {
-      const [destination] = await hre.ethers.getSigners();
-
-      const { mpForwarder } = await loadFixture(
-        deployNoDestinationMPForwarderFixture
-      );
-
-      await mpForwarder.init(destination);
-
-      expect(await mpForwarder.destination()).to.equal(destination);
-    });
-
-    it("should revert if the destination is already set", async function () {
-      const [destination] = await hre.ethers.getSigners();
-
-      const { mpForwarder } = await loadFixture(deployMPForwarderFixture);
-
-      await expect(mpForwarder.init(destination)).to.be.revertedWith(
-        "Destination already set"
-      );
-    });
 
     it("should revert if the destination is the zero address", async function () {
-      const { mpForwarder } = await loadFixture(
-        deployNoDestinationMPForwarderFixture
-      );
-
-      await expect(mpForwarder.init(hre.ethers.ZeroAddress)).to.be.revertedWith(
+      await expect(deployNoDestinationMPForwarderFixture()).to.be.revertedWith(
         "Invalid destination address"
       );
     });
@@ -107,16 +95,6 @@ describe("MPForwarder", function () {
       );
     });
 
-    it("should revert if the destination is the zero address", async function () {
-      const { mpForwarder } = await loadFixture(
-        deployNoDestinationMPForwarderFixture
-      );
-
-      await expect(mpForwarder.flushETH()).to.be.revertedWith(
-        "Destination address not set"
-      );
-    });
-
     it("should revert if there's no ETH to flush", async function () {
       const { mpForwarder } = await loadFixture(deployMPForwarderFixture);
 
@@ -135,7 +113,7 @@ describe("MPForwarder", function () {
 
     it("should revert if ETH transfer fails", async function () {
       const { mpForwarder, owner } = await loadFixture(
-        deployNoDestinationMPForwarderFixture
+        deployRevertingDestinationForwarderFixture
       );
 
       const mpForwarderAddress = await mpForwarder.getAddress();
@@ -145,16 +123,6 @@ describe("MPForwarder", function () {
         to: mpForwarderAddress,
         value: hre.ethers.parseEther("1"),
       });
-
-      // Mock the destination contract to simulate a failed transfer
-      const DestinationMock = await hre.ethers.getContractFactory(
-        "DestinationMock"
-      );
-      const destinationMock = await DestinationMock.deploy();
-      const destinationMockAddress = await destinationMock.getAddress();
-
-      // Set the mock destination as the destination address
-      await mpForwarder.init(destinationMockAddress);
 
       // Flush ETH
       await expect(mpForwarder.flushETH()).to.be.revertedWith(
@@ -207,26 +175,6 @@ describe("MPForwarder", function () {
       expect(finalContractBalance).to.equal(0);
       expect(finalDestinationBalance).to.equal(
         initialDestinationBalance + initialContractBalance
-      );
-    });
-
-    it("should revert if the destination is the zero address", async function () {
-      const { mpForwarder, owner } = await loadFixture(
-        deployNoDestinationMPForwarderFixture
-      );
-
-      // Deploy an ERC20 token
-      const ERC20Mock = await hre.ethers.getContractFactory("ERC20Mock");
-      const erc20Mock = await ERC20Mock.deploy(
-        "Tether USD",
-        "USDT",
-        owner.address,
-        hre.ethers.parseEther("1000")
-      );
-      const erc20MockAddress = await erc20Mock.getAddress();
-
-      await expect(mpForwarder.flushERC20(erc20MockAddress)).to.be.revertedWith(
-        "Destination address not set"
       );
     });
 
